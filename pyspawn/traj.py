@@ -461,10 +461,6 @@ class traj(fmsobj):
         self.maxtime = parent.maxtime
         self.full_H = parent.full_H
         self.n_el_steps = parent.n_el_steps
-#         print "parent_krylov_sub_n", parent.krylov_sub_n
-#         print "child_krylov_sub_n", self.krylov_sub_n
-#         self.krylov_sub_n = parent.krylov_sub_n
-#         print "child_krylov_sub_n", self.krylov_sub_n
         self.widths = parent.widths
         self.masses = parent.masses
 
@@ -494,7 +490,6 @@ class traj(fmsobj):
         tmp_force = parent.av_force
         tmp_energy = parent.av_energy
         eigenvals = parent.energies
-#         eigenvectors = parent.approx_eigenvecs
         tmp_wf = parent.approx_wf_full_ts
         
         H_elec, Force = parent.construct_el_H(pos_t)
@@ -511,12 +506,7 @@ class traj(fmsobj):
             approx_force[n] = np.dot(np.transpose(np.conjugate(q)), np.dot(Force[n], q))
         
         approx_e, approx_eigenvecs = np.linalg.eigh(Hk)
-        
-#         tmp_amp = np.dot(np.transpose(np.conjugate(q)), parent.mce_amps)
-#         print "approx_eigenvecs =", eigenvectors
-#         print "approx_amp =", tmp_amp
-#         print "approx e =", approx_e      
-        
+                
         child_wf = np.zeros((self.krylov_sub_n), dtype=np.complex128) 
         parent_wf = np.zeros((self.krylov_sub_n), dtype=np.complex128) 
         
