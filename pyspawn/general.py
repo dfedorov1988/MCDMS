@@ -5,8 +5,8 @@ def print_splash():
     print "You are about to propagate a molecular wave function with MCDMS"
     print "\n----------------------------------------------"
     print "Multiple Cloning in Dense Manifolds of states"
-    print "Nonadiabatic molecular dynamics software package" +\
-          "written by\nBenjamin G. Levine, Dmitry A. Fedorov"
+    print "Nonadiabatic molecular dynamics software package\n" +\
+          "written by Benjamin G. Levine, Dmitry A. Fedorov"
     print "------------------------------------------------"
 
     print " "

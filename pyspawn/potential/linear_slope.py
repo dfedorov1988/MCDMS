@@ -60,6 +60,7 @@ def compute_elec_struct(self):
             print "\nFirst step, skipping electronic wave function propagation"
             symplectic_backprop(self, H_elec, wf, el_timestep, n_krylov, n_krylov)
             print "wf_store_full_ts = \n", self.wf_store_full_ts
+    
     wf_T = np.transpose(np.conjugate(wf))
     av_energy = np.real(np.dot(np.dot(wf_T, H_elec), wf))    
 
