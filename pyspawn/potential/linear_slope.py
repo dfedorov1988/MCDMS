@@ -22,7 +22,7 @@ def compute_elec_struct(self):
     ehrenfest wave function one nuclear time step that's split into 
     smaller electronic timesteps.
     The propagation using approximate eigenstates is also coded here"""
-    print "DEBUG: approx_pop", self.approx_pop
+#     print "DEBUG: approx_pop", self.approx_pop
     n_krylov = self.krylov_sub_n
     
     wf = self.td_wf
@@ -59,7 +59,7 @@ def compute_elec_struct(self):
         if self.first_step:
             print "\nFirst step, skipping electronic wave function propagation"
             symplectic_backprop(self, H_elec, wf, el_timestep, n_krylov, n_krylov)
-            print "wf_store_full_ts = \n", self.wf_store_full_ts
+#             print "wf_store_full_ts = \n", self.wf_store_full_ts
     
     wf_T = np.transpose(np.conjugate(wf))
     av_energy = np.real(np.dot(np.dot(wf_T, H_elec), wf))    
@@ -114,8 +114,8 @@ def compute_elec_struct(self):
         approx_total_e += approx_pop[n] * approx_e[n]
         approx_total_pop += approx_pop[n]
     
-    print "approx Population = ", approx_pop
-    print "av_energy = ", self.av_energy
+#     print "approx Population = ", approx_pop
+#     print "av_energy = ", self.av_energy
     
     def print_stuff():
         """Prints variables for debugging"""
@@ -155,17 +155,17 @@ def compute_elec_struct(self):
 def construct_el_H(self, x):
     """Constructing n state 1D system and computing d/dx, d/dy for
     force computation. Later will be replaced with the electronic structure program call"""
-
+  
     k = 0.005 # off-diagonal coupling matrix elements
     w1 = 0.25 # slope 1
     w2 = 0.025 # slope 2
     delta = 0.01 # gap between diabatic states
-
+  
     H_elec = np.zeros((self.numstates, self.numstates))
     Hx = np.zeros((self.numstates, self.numstates))
     H_elec[0, 0] = w1 * (-x)
     Hx[0, 0] = -w1
-     
+       
     for n in range(self.numstates-1):
         if n < 4:
             H_elec[n+1, n+1] = w2 * x - n*delta 
@@ -176,20 +176,43 @@ def construct_el_H(self, x):
                 H_elec[0, n+1] = k #/ 5
                 H_elec[n+1, 0] = k #/ 5
             Hx[n+1, n+1] = w2
-        
+          
         else:
             H_elec[n+1, n+1] = w2 * x - n*delta #- 0.08 
-            if n!=3:
+            if n!=4 and n!=5:
                 H_elec[0, n+1] = k
                 H_elec[n+1, 0] = k
             else:
                 H_elec[0, n+1] = k #/ 5
                 H_elec[n+1, 0] = k #/ 5
             Hx[n+1, n+1] = w2
-              
+                
     Force = [Hx]    
-    
+      
     return H_elec, Force
+
+# def construct_el_H(self, x):
+#     """Constructing n state 1D system and computing d/dx, d/dy for
+#     force computation. Later will be replaced with the electronic structure program call"""
+#      
+#     # 2 state simplest system 
+#     k = 0.005 # off-diagonal coupling matrix elements
+#     w1 = 0.25 # slope 1
+#     w2 = 0.025 # slope 2
+#  
+#     H_elec = np.zeros((self.numstates, self.numstates))
+#     Hx = np.zeros((self.numstates, self.numstates))
+#     H_elec[0, 0] = w1 * (-x)
+#     Hx[0, 0] = -w1
+#  
+#     H_elec[1, 1] = w2 * x 
+#     H_elec[0, 1] = k
+#     H_elec[1, 0] = k 
+#     Hx[1, 1] = w2
+#                
+#     Force = [Hx]    
+#      
+#     return H_elec, Force
 
 def propagate_symplectic(self, H, wf, timestep, nsteps, n_krylov):
     """Symplectic split propagator, similar to classical Velocity-Verlet"""
@@ -208,9 +231,12 @@ def propagate_symplectic(self, H, wf, timestep, nsteps, n_krylov):
         c_r_dot = np.dot(H, c_i)
         c_r = c_r + 0.5 * el_timestep * c_r_dot  
         
-        if nsteps - i <= n_krylov:
-            self.wf_store[:, n] = c_r + 1j * c_i 
-            n += 1
+        if nsteps - i <= n_krylov/2:
+#             self.wf_store[:, n] = c_r + 1j * c_i 
+#             n += 1
+            self.wf_store[:, n] = c_r
+            self.wf_store[:, n+1] = c_i
+            n += 2
 #     print "wf_store =\n", self.wf_store   
 #     print "wf_store_full_ts =", self.wf_store_full_ts
     wf = c_r + 1j * c_i
@@ -224,9 +250,8 @@ def symplectic_backprop(self, H, wf, el_timestep, nsteps, n_krylov):
 #     approx_eig = np.zeros((self.numstates, n_krylov), dtype = np.complex128)
     c_r = np.real(wf)
     c_i = np.imag(wf)
-    n = 0        
     self.wf_store_full_ts = np.zeros((self.numstates, self.krylov_sub_n), dtype = np.complex128)
-    for n in range(nsteps):
+    for n in range(nsteps/2):
         
         c_r_dot = np.dot(H, c_i)
         c_r = c_r - 0.5 * el_timestep * c_r_dot
@@ -236,8 +261,9 @@ def symplectic_backprop(self, H, wf, el_timestep, nsteps, n_krylov):
         c_r = c_r - 0.5 * el_timestep * c_r_dot  
     
 #         self.wf_store_full_ts[:, n_krylov-n-1] = c_r + 1j * c_i
-        self.wf_store_full_ts[:, n] = c_r + 1j * c_i
-    
+#         self.wf_store_full_ts[:, n] = c_r + 1j * c_i
+        self.wf_store_full_ts[:, 2*n] = c_r
+        self.wf_store_full_ts[:, 2*n + 1] = c_i
 #     print "wf_store =\n", self.wf_store   
 #     print "wf_store_full_ts =\n", self.wf_store_full_ts
     self.wf_store = self.wf_store_full_ts.copy()
