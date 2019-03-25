@@ -22,6 +22,7 @@ def qm_propagate_step(self, zoutput_first_step=False):
     print "Building effective Hamiltonian for the first half step"
     
     self.build_Heff_half_timestep()
+    self.calc_approx_el_populations()
     norm = np.dot(np.conjugate(np.transpose(amps_t)), np.dot(self.S, amps_t))
 #     print "amps =", amps_t
     #print "Norm first half =", norm    
