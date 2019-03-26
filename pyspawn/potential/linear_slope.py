@@ -131,18 +131,12 @@ def compute_elec_struct(self):
         print "The trajectory reached the inflection point: exiting"
         sys.exit() 
 
-    # DEBUGGING
-    approx_total_e = 0.0
-    approx_total_pop = 0.0
-    for n in range(self.krylov_sub_n):
-        approx_total_e += approx_pop[n] * approx_e[n]
-        approx_total_pop += approx_pop[n]  
-
     #print_stuff()
     
     # This part performs the propagation of the electronic wave function 
     # for ehrenfest dynamics at a half step and save it
-    wf = propagate_symplectic(self, H_elec, wf, self.timestep/2, n_el_steps/2, n_krylov)
+    wf = propagate_symplectic(self, H_elec, wf, self.timestep / 2,
+                              n_el_steps / 2, n_krylov)
 
     # Saving electronic wf and Hamiltonian
     self.td_wf = wf
