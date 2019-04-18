@@ -4,7 +4,7 @@ from pyspawn.fmsobj import fmsobj
 from pyspawn.traj import traj
 from pyspawn.hessian import hessian
 import pyspawn.complexgaussian
-from pyspawn.simulation import simulation
+from pyspawn.simulation import Simulation
 import pyspawn.fms_analysis
 from fafile import fafile
 import pyspawn.import_methods
