@@ -57,20 +57,20 @@ def compute_elec_struct(self):
     time = self.time
     el_timestep = self.timestep / n_el_steps
 
-    # Constructing Hamiltonian, computing derivatives, for now solving the eigenvalue problem
-    # to get adiabatic states
-    # for real systems it will be replaced by approximate eigenstates
+    # Constructing Hamiltonian, computing derivatives, 
+    # for now solving the eigenvalue problem to get adiabatic states
+    # for real systems it will be replaced by will get it from ES program
     H_elec, Force = self.construct_el_H(x) 
     ss_energies, eigenvectors = lin.eigh(H_elec)
     eigenvectors_T = np.transpose(np.conjugate(eigenvectors))
-    
+
     pop = np.zeros(self.numstates)
     amp = np.zeros((self.numstates), dtype=np.complex128) 
     approx_pop = np.zeros(self.krylov_sub_n)
     approx_amp = np.zeros((self.krylov_sub_n), dtype=np.complex128)
 
     if np.dot(np.transpose(np.conjugate(wf)), wf)  < 1e-8:
-        print "WF = 0, constructing electronic wf for the first timestep", wf
+        print "WF = 0, constructing electronic wf for the first timestep"
         wf = eigenvectors[:, -1] # starting on the highest energy state
     else:
         if not self.first_step:
@@ -98,6 +98,8 @@ def compute_elec_struct(self):
     for n in range(self.numdims):
         av_force[n] = -np.real(np.dot(np.dot(wf_T, Force[n]), wf))
 
+    # test: getting real eigenvectors from approximate
+#     eigenvectors = np.dot(np.dot(q, approx_eigenvecs), np.transpose(np.conjugate(q)))
     for j in range(self.numstates):
         amp[j] = np.dot(np.conjugate(np.transpose(eigenvectors[:, j])), wf)
         pop[j] = np.real(np.dot(np.transpose(np.conjugate(amp[j])), amp[j]))
@@ -125,7 +127,7 @@ def compute_elec_struct(self):
     self.mce_amps = amp
     self.td_wf_full_ts = np.complex128(wf)
     self.populations = pop
-    
+
     # To test single passage only
     if self.momenta[0] < 0:
         print "The trajectory reached the inflection point: exiting"
@@ -135,8 +137,7 @@ def compute_elec_struct(self):
     
     # This part performs the propagation of the electronic wave function 
     # for ehrenfest dynamics at a half step and save it
-    wf = propagate_symplectic(self, H_elec, wf, self.timestep / 2,
-                              n_el_steps / 2, n_krylov)
+    wf = propagate_symplectic(self, H_elec, wf, self.timestep / 2, n_el_steps / 2, n_krylov)
 
     # Saving electronic wf and Hamiltonian
     self.td_wf = wf
@@ -170,13 +171,13 @@ def construct_el_H(self, x):
             Hx[n + 1, n + 1] = w2
 
         else:
-            H_elec[n + 1, n + 1] = w2*x - n*delta - 0.08 
+            H_elec[n + 1, n + 1] = w2*x - n*delta #- 0.08 
             if n != 6 and n != 7 and n != 5:
                 H_elec[0, n+1] = k
                 H_elec[n+1, 0] = k
             else:
-                H_elec[0, n + 1] = 0.0 # k / 5
-                H_elec[n + 1, 0] = 0.0 # k / 5
+                H_elec[0, n + 1] = k # / 5
+                H_elec[n + 1, 0] = k # / 5
             Hx[n + 1, n + 1] = w2
 
     Force = [Hx]    
@@ -217,14 +218,14 @@ def propagate_symplectic(self, H, wf, timestep, nsteps, n_krylov):
     c_i = np.imag(wf)
     n = 0 # counter for how many saved electronic wf components we have
     for i in range(nsteps):
-        
+
         c_r_dot = np.dot(H, c_i)
         c_r = c_r + 0.5 * el_timestep * c_r_dot
         c_i_dot = -1.0 * np.dot(H, c_r)
         c_i = c_i + el_timestep * c_i_dot  
         c_r_dot = np.dot(H, c_i)
         c_r = c_r + 0.5 * el_timestep * c_r_dot  
-        
+
         if nsteps - i <= n_krylov / 2:
 #             self.wf_store[:, n] = c_r + 1j * c_i 
 #             n += 1

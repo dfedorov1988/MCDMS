@@ -8,21 +8,19 @@ import os
 # is smaller -> no cloning
 nuc_pop_thresh = 0.05
 # Minimum population of electronic state for cloning to occur to it
-pop_thresh = 0.01
+pop_thresh = 0.03
 # Minimum energy gap for cloning to occur
 e_gap_thresh = 0.05
 # Maximum overlap threshold, if higher -> no cloning
 olapmax = 0.5
 # Use real eigenstates or approximate (Krylov subspace)
-full_H = True
+full_H = False
 # Size of Krylov subspace
 krylov_sub_n = 2
 # Velocity Verlet classical propagator
 clas_prop = "vv"
 # fulldiag exponential quantum propagator
 qm_prop = "fulldiag"
-# diabatic ehrenfest Hamiltonian
-qm_ham = "ehrenfest"
 # use TeraChem CASSCF or CASCI to compute potentials
 potential = "linear_slope"
 # initial time
@@ -30,11 +28,11 @@ t0 = 0.0
 # time step
 ts = 0.1
 # final simulation time
-tfinal = 100.0
+tfinal = 80.0
 # number of dimensions                                                                                           
 numdims = 1
 # number of electronic states                                                                                                           
-numstates = 17
+numstates = 5
 # number of electronic timesteps within one nuclear
 n_el_steps = 100
 
@@ -76,20 +74,20 @@ sim_params = {
 
 # import routines needed for propagation
 exec("pyspawn.import_methods.into_simulation(pyspawn.qm_integrator." + qm_prop + ")")
-exec("pyspawn.import_methods.into_simulation(pyspawn.qm_hamiltonian." + qm_ham + ")")
 exec("pyspawn.import_methods.into_traj(pyspawn.potential." + potential + ")")
-exec("pyspawn.import_methods.into_traj(pyspawn.classical_integrator." + clas_prop + ")")
+# exec("pyspawn.import_methods.into_traj(pyspawn.classical_integrator." + clas_prop + ")")
 
 # check for the existence of files from a past run
 pyspawn.general.check_files()    
 
 # set up first trajectory
-if full_H: krylov_sub_n = numstates
+if full_H:
+    krylov_sub_n = numstates
 traj1 = pyspawn.traj(numdims, numstates, krylov_sub_n)
 traj1.set_parameters(traj_params)
 
 # set up simulation 
-sim = pyspawn.simulation()
+sim = pyspawn.Simulation()
 sim.add_traj(traj1)
 sim.set_parameters(sim_params)
 # begin propagation

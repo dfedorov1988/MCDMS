@@ -33,7 +33,7 @@ class Simulation(fmsobj):
         self.olapmax = 0.1
 
         # Number of electronic states (this needs to be fixed since this is already in traj object)
-        self.num_el_states = 17
+        self.num_el_states = 5
 
         self.pop_threshold = 0.1
         self.e_gap_thresh = 0.0
@@ -195,7 +195,7 @@ class Simulation(fmsobj):
                 self.clone_to_a_state()
                 if self.clone_again:
                     for key in self.traj:
-                        self.traj[key].compute_cloning_E_diff()
+                        self.traj[key].compute_cloning_e_gap_thresh()
                     self.clone_to_a_state()
 
 #             if self.S.shape[0] > 1:
@@ -606,10 +606,10 @@ class Simulation(fmsobj):
         for key in self.traj:
 #           # sorting states according to decreasing gap * el population
             if self.traj[key].full_H:
-                istates = (-self.traj[key].clone_E_diff[:]\
+                istates = (-self.traj[key].clone_e_gap[:]\
                            * self.traj[key].populations[:]).argsort()
             else:
-                istates = (-self.traj[key].clone_E_diff[:]\
+                istates = (-self.traj[key].clone_e_gap[:]\
                            * self.traj[key].approx_pop[:]).argsort()
             # nuclear population of this trajectory
             nuc_pop = self.nuc_pop[self.traj_map[key]]
@@ -634,21 +634,21 @@ class Simulation(fmsobj):
 
                 clone_now = True
                 # Energy of a specific state is larger than threshold
-                clone_now *= self.traj[key].clone_E_diff[istate] > self.e_gap_thresh
+                clone_now *= self.traj[key].clone_e_gap[istate] > self.e_gap_thresh
                 # Population is larger than threshold
                 clone_now *= pop_to_check[istate] > self.pop_threshold
                 # This is arbitrary but we clone to the state which has low pop
                 clone_now *= pop_to_check[istate] < 1.0 - self.pop_threshold
                 # This makes sure we clone only if energy gap is increasing
-                clone_now *= self.traj[key].clone_E_diff[istate]\
-                             >= self.traj[key].clone_E_diff_prev[istate]
+                clone_now *= self.traj[key].clone_e_gap[istate]\
+                             >= self.traj[key].clone_e_gap_prev[istate]
 
                 if clone_now:
 
                     print "\nTrajectory " + key + " with nuclear population of "\
                     + str(round(nuc_pop*100, 2)) + "% cloning to " + str(istate)\
                     + " state at time " + str(self.traj[key].time)
-                    print "with p = " + str(self.traj[key].clone_E_diff[istate])
+                    print "with p = " + str(self.traj[key].clone_e_gap[istate])
                     print "Electronic populations on trajectory " + key + ":"
                     print self.traj[key].approx_pop
 
