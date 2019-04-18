@@ -16,4 +16,3 @@ def into_simulation(x):
     for method in x.__dict__:
         if method[0] != "_":
             exec("Simulation." + method + " = x." + method)
-            
