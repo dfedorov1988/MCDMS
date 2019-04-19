@@ -12,7 +12,8 @@ import h5py
 import numpy.linalg as la
 
 from pyspawn.fmsobj import fmsobj
-from pyspawn.traj import traj, expec_value
+from pyspawn.traj import traj
+from pyspawn.misc import expec_value
 import pyspawn.general as gen
 import pyspawn.complexgaussian as cg
 

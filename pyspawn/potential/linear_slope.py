@@ -26,7 +26,7 @@ def construct_ham_lin_slope(x, numstates):
     H_elec = np.zeros((numstates, numstates))
     Hx = np.zeros((numstates, numstates))
     H_elec[0, 0] = slope_1 * (-x)
-    Hx[0, 0] = -slope_2
+    Hx[0, 0] = -slope_1
 
     for n in range(numstates - 1):
         if n < 4: # this if statement adds a gap between middle states
