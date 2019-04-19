@@ -142,7 +142,10 @@ class traj(fmsobj):
             approx_force[n_dim] = expec_value(tr_matrix, force_full[n_dim])
 
         approx_eigenvecs = np.linalg.eigh(Hk)[1]
-#         eigenvectors = np.dot(tr_matrix, np.dot(approx_eigenvecs, np.transpose(np.conjugate(q))))
+        # Getting eigenvectors from approximate ones
+        eigenvectors = np.dot(
+            tr_matrix, np.dot(approx_eigenvecs,
+                              np.transpose(np.conjugate(tr_matrix))))
         nstates = self.krylov_sub_n
         eigenvecs = approx_eigenvecs
         H = Hk
@@ -678,26 +681,18 @@ class traj(fmsobj):
             """Prints variables for debugging"""
 
             print "Position =", self.positions
-    #         print "Hamiltonian =\n", H_elec
-    #         print "positions =", self.positions
-    #         print "momentum =", self.momenta
             print "Average energy =", self.av_energy
-    #         print "wf_store =", self.wf_store_full_ts
             print "Energies =", ss_energies
-    #         print "force =", av_force
-    #         print "Wave function =\n", wf
             print "approx wf =\n", self.approx_wf_full_ts
             print "approx amp", self.approx_amp
             print "approx_e =", approx_e
-    #         print "approx Eigenvectors =\n", self.approx_eigenvecs
             print "approx Population = ", approx_pop
             print "population =", self.populations
             print "norm =", sum(pop)
-    #         print "amps =", amp
 
         n_krylov = self.krylov_sub_n
-
         wf = self.td_wf
+
         print "Performing electronic structure calculations:"
         pos = self.positions[0]
 
@@ -748,8 +743,8 @@ class traj(fmsobj):
             av_force[n] = -np.real(np.dot(np.dot(wf_T, force[n]), wf))
 
         # test: getting real eigenvectors from approximate
-#         eigenvectors = np.dot(np.dot(tr_matrix, approx_eigenvecs),
-#                               np.transpose(np.conjugate(tr_matrix)))
+        eigenvectors = np.dot(np.dot(tr_matrix, approx_eigenvecs),
+                              np.transpose(np.conjugate(tr_matrix)))
         for j in range(self.numstates):
             amp[j] = np.dot(np.conjugate(np.transpose(eigenvectors[:, j])), wf)
             pop[j] = np.real(np.dot(np.transpose(np.conjugate(amp[j])), amp[j]))

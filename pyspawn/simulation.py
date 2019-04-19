@@ -35,7 +35,7 @@ class Simulation(fmsobj):
         self.olapmax = 0.1
 
         # Number of electronic states (this needs to be fixed since this is already in traj object)
-        self.num_el_states = 5
+        self.num_el_states = 9
 
         self.pop_threshold = 0.1
         self.e_gap_thresh = 0.0
