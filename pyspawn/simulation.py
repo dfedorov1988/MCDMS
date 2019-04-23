@@ -333,12 +333,13 @@ class Simulation(fmsobj):
                     j = self.traj_map[keyj]
                     if j < ntraj:
                         self.S_nuc[i, j] = cg.overlap_nuc(
-                            self.traj[keyi],
-                            self.traj[keyj],
-                            positions_i="positions_qm",
-                            positions_j="positions_qm",
-                            momenta_i="momenta_qm",
-                            momenta_j="momenta_qm")
+                            self.traj[keyi].positions_qm,
+                            self.traj[keyj].positions_qm,
+                            self.traj[keyi].momenta_qm,
+                            self.traj[keyj].momenta_qm,
+                            self.traj[keyi].widths,
+                            self.traj[keyj].widths,
+                            self.traj[keyi].numdims)
 
                         self.S[i, j] = self.S_nuc[i, j] * self.S_elec[i, j]
 
@@ -357,13 +358,15 @@ class Simulation(fmsobj):
                     j = self.traj_map[keyj]
                     if j < ntraj:
                         self.S_dot_nuc[i, j] = cg.Sdot_nuc(
-                            self.traj[keyi],
-                            self.traj[keyj],
-                            positions_i="positions_qm",
-                            positions_j="positions_qm",
-                            momenta_i="momenta_qm",
-                            momenta_j="momenta_qm",
-                            forces_j="av_force_qm")
+                            self.traj[keyi].positions_qm,
+                            self.traj[keyj].positions_qm,
+                            self.traj[keyi].momenta_qm,
+                            self.traj[keyj].momenta_qm,
+                            self.traj[keyi].widths,
+                            self.traj[keyj].widths,
+                            self.traj[keyj].av_force_qm,
+                            self.traj[keyi].masses,
+                            self.traj[keyi].numdims)
 
                         # Here we will call ES program to get Hamiltonian
                         H_elec, force\
@@ -433,11 +436,14 @@ class Simulation(fmsobj):
                     j = self.traj_map[keyj]
                     if j < ntraj:
                         self.T[i, j] = cg.kinetic_nuc(
-                            self.traj[keyi], self.traj[keyj],
-                            positions_i="positions_qm",
-                            positions_j="positions_qm",
-                            momenta_i="momenta_qm",
-                            momenta_j="momenta_qm")\
+                            self.traj[keyi].positions_qm,
+                            self.traj[keyj].positions_qm,
+                            self.traj[keyi].momenta_qm,
+                            self.traj[keyj].momenta_qm,
+                            self.traj[keyi].widths,
+                            self.traj[keyj].widths,
+                            self.traj[keyi].masses,
+                            self.traj[keyi].numdims)\
                             * self.S_elec[i, j]
 
     def calc_approx_el_populations(self):
@@ -497,11 +503,11 @@ class Simulation(fmsobj):
         wf_1_T = np.transpose(np.conjugate(traj_1.td_wf_full_ts))
         wf_2 = traj_2.td_wf_full_ts
         S_elec_12 = np.dot(wf_1_T, wf_2)
-        S_nuc_12 = cg.overlap_nuc(traj_1, traj_2,
-                                  positions_i="positions",
-                                  positions_j="positions",
-                                  momenta_i="momenta",
-                                  momenta_j="momenta")
+
+        S_nuc_12 = cg.overlap_nuc(traj_1.positions, traj_2.positions,
+                                  traj_1.momenta, traj_2.momenta,
+                                  traj_1.widths, traj_2.widths,
+                                  traj_1.numdims)
 
         S[ind_1, ind_2] = S_elec_12 * S_nuc_12
         S[ind_2, ind_1] = np.conjugate(S[ind_1, ind_2])
@@ -536,13 +542,14 @@ class Simulation(fmsobj):
 
                     wf_n = traj_n.td_wf_full_ts
                     S_elec_1n = np.dot(wf_1_T, wf_n)
-                    S_nuc_1n = self.overlap_nuc(
+                    S_nuc_1n = cg.overlap_nuc(
                         traj_1.positions,
                         traj_n.positions,
                         traj_1.momenta,
                         traj_n.momenta_qm,
                         traj_1.widths,
-                        traj_n.widths)
+                        traj_n.widths,
+                        traj_1.numdims)
 
                     S[ind_1, ind_n] = S_elec_1n * S_nuc_1n
                     S[ind_n, ind_1] = np.conjugate(S[ind_1, ind_n])
@@ -551,13 +558,14 @@ class Simulation(fmsobj):
                     wf_2_T = np.transpose(np.conjugate(wf_2))
 
                     S_elec_2n = np.dot(wf_2_T, wf_n)
-                    S_nuc_2n = self.overlap_nuc(
+                    S_nuc_2n = cg.overlap_nuc(
                         traj_2.positions,
                         traj_n.positions,
                         traj_2.momenta,
                         traj_n.momenta_qm,
                         traj_2.widths,
-                        traj_n.widths)
+                        traj_n.widths,
+                        traj_2.numdims)
 
                     S[ind_2, ind_n] = S_elec_2n * S_nuc_2n
                     S[ind_n, ind_2] = np.conjugate(S[ind_2, ind_n])
@@ -999,38 +1007,38 @@ class Simulation(fmsobj):
                             (tempdict[key])[key2] = obj
         self.__dict__.update(tempdict)
 
-    def overlap_nuc(self, pos_i, pos_j, mom_i, mom_j, widths_i, widths_j):
-        """Calculates nuclear overlap of two Gaussians"""
-
-        Sij = 1.0
-        for idim in range(self.traj["00"].numdims):
-            xi = pos_i[idim]
-            xj = pos_j[idim]
-            di = mom_i[idim]
-            dj = mom_j[idim]
-            xwi = widths_i[idim]
-            xwj = widths_j[idim]
-            Sij *= overlap_nuc_1d(xi, xj, di, dj, xwi, xwj)
-
-        return Sij
-
-def overlap_nuc_1d(xi, xj, di, dj, xwi, xwj):
-    """Compute 1-dimensional nuclear overlaps"""
-
-    c1i = (complex(0.0, 1.0))
-    deltax = xi - xj
-    pdiff = di - dj
-    osmwid = 1.0 / (xwi + xwj)
-
-    xrarg = osmwid * (xwi*xwj*deltax*deltax + 0.25*pdiff*pdiff)
-    if xrarg < 10.0:
-        gmwidth = math.sqrt(xwi*xwj)
-        ctemp = (di*xi - dj*xj)
-        ctemp = ctemp - osmwid * (xwi*xi + xwj*xj) * pdiff
-        cgold = math.sqrt(2.0 * gmwidth * osmwid)
-        cgold = cgold * math.exp(-1.0 * xrarg)
-        cgold = cgold * cmath.exp(ctemp * c1i)
-    else:
-        cgold = 0.0
-
-    return cgold
+#     def overlap_nuc(self, pos_i, pos_j, mom_i, mom_j, widths_i, widths_j):
+#         """Calculates nuclear overlap of two Gaussians"""
+# 
+#         Sij = 1.0
+#         for idim in range(self.traj["00"].numdims):
+#             xi = pos_i[idim]
+#             xj = pos_j[idim]
+#             di = mom_i[idim]
+#             dj = mom_j[idim]
+#             xwi = widths_i[idim]
+#             xwj = widths_j[idim]
+#             Sij *= overlap_nuc_1d(xi, xj, di, dj, xwi, xwj)
+# 
+#         return Sij
+# 
+# def overlap_nuc_1d(xi, xj, di, dj, xwi, xwj):
+#     """Compute 1-dimensional nuclear overlaps"""
+# 
+#     c1i = (complex(0.0, 1.0))
+#     deltax = xi - xj
+#     pdiff = di - dj
+#     osmwid = 1.0 / (xwi + xwj)
+# 
+#     xrarg = osmwid * (xwi*xwj*deltax*deltax + 0.25*pdiff*pdiff)
+#     if xrarg < 10.0:
+#         gmwidth = math.sqrt(xwi*xwj)
+#         ctemp = (di*xi - dj*xj)
+#         ctemp = ctemp - osmwid * (xwi*xi + xwj*xj) * pdiff
+#         cgold = math.sqrt(2.0 * gmwidth * osmwid)
+#         cgold = cgold * math.exp(-1.0 * xrarg)
+#         cgold = cgold * cmath.exp(ctemp * c1i)
+#     else:
+#         cgold = 0.0
+# 
+#     return cgold
