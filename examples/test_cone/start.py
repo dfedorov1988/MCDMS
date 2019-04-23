@@ -16,7 +16,7 @@ olapmax = 0.5
 # Use real eigenstates or approximate (Krylov subspace)
 full_H = False
 # Size of Krylov subspace
-krylov_sub_n = 2
+krylov_sub_n = 5
 # Velocity Verlet classical propagator
 clas_prop = "vv"
 # fulldiag exponential quantum propagator
@@ -51,7 +51,8 @@ traj_params = {
     "momenta": np.asarray([10.0]),
     "full_H": full_H,
     "numstates": numstates,
-    "n_el_steps": n_el_steps,    
+    "n_el_steps": n_el_steps,
+#     "potential": "linear_slope"
     }
 
 sim_params = {
@@ -73,8 +74,8 @@ sim_params = {
 }
 
 # import routines needed for propagation
-exec("pyspawn.import_methods.into_simulation(pyspawn.qm_integrator." + qm_prop + ")")
-exec("pyspawn.import_methods.into_traj(pyspawn.potential." + potential + ")")
+# exec("pyspawn.import_methods.into_simulation(pyspawn.qm_integrator." + qm_prop + ")")
+# exec("pyspawn.import_methods.into_traj(pyspawn.potential." + potential + ")")
 # exec("pyspawn.import_methods.into_traj(pyspawn.classical_integrator." + clas_prop + ")")
 
 # check for the existence of files from a past run
@@ -87,7 +88,7 @@ traj1 = pyspawn.traj(numdims, numstates, krylov_sub_n)
 traj1.set_parameters(traj_params)
 
 # set up simulation 
-sim = pyspawn.Simulation()
+sim = pyspawn.Simulation(numstates)
 sim.add_traj(traj1)
 sim.set_parameters(sim_params)
 # begin propagation

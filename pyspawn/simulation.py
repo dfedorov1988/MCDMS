@@ -21,7 +21,7 @@ import pyspawn.complexgaussian as cg
 class Simulation(fmsobj):
     """This is the main simulation module"""
 
-    def __init__(self):
+    def __init__(self, numstates):
         # traj is a dictionary of trajectory basis functions (TBFs)
         self.traj = dict()
 
@@ -32,10 +32,10 @@ class Simulation(fmsobj):
 
         # olapmax is the maximum overlap allowed for a spawn.  Above this,
         # the spawn is cancelled
-        self.olapmax = 0.1
+        self.olapmax = 0.5
 
         # Number of electronic states (this needs to be fixed since this is already in traj object)
-        self.num_el_states = 9
+        self.num_el_states = numstates
 
         self.pop_threshold = 0.1
         self.e_gap_thresh = 0.0
@@ -367,14 +367,17 @@ class Simulation(fmsobj):
 
                         # Here we will call ES program to get Hamiltonian
                         H_elec, force\
-                        = self.traj[keyj].construct_el_H(self.traj[keyj].positions_qm)
-                        wf_j_dot = -1j * np.dot(H_elec,\
+                        = self.traj[keyj].construct_el_H(
+                            self.traj[keyj].positions_qm)
+                        wf_j_dot = -1j * np.dot(H_elec,
                                               self.traj[keyj].td_wf_full_ts_qm)
-                        wf_i_T = np.conjugate(np.transpose(self.traj[keyi].td_wf_full_ts_qm))
+                        wf_i_T = np.conjugate(
+                            np.transpose(self.traj[keyi].td_wf_full_ts_qm))
                         self.S_dot_elec[i, j] = np.dot(wf_i_T, wf_j_dot)
 
-                        self.Sdot[i, j] = np.dot(self.S_dot_elec[i, j], self.S_nuc[i, j])\
-                                       + np.dot(self.S_elec[i, j], self.S_dot_nuc[i, j])
+                        self.Sdot[i, j] =\
+                            np.dot(self.S_dot_elec[i, j], self.S_nuc[i, j])\
+                            + np.dot(self.S_elec[i, j], self.S_dot_nuc[i, j])
 
     def build_H(self):
         """Building the Hamiltonian"""
@@ -446,26 +449,27 @@ class Simulation(fmsobj):
         n_el_states = self.traj["00"].numstates
         norm = np.zeros(n_el_states)
 
-        for i in range(n_el_states):
+        for n_el_state in range(n_el_states):
             ntraj = np.shape(self.S)[0]
             self.nuc_pop = np.zeros(ntraj)
             c_t = self.qm_amplitudes
             S_t = self.S
             for key1 in self.traj:
-                pop_ist = 0.0
-                ist = self.traj_map[key1]
+                nuc_pop = 0.0
+                nuc_ind = self.traj_map[key1]
                 for key2 in self.traj:
-                    ist2 = self.traj_map[key2]
+                    nuc_ind2 = self.traj_map[key2]
 
-                    pop_ist += np.real(0.5 * (np.dot(np.conjugate(c_t[ist]),
-                                                     np.dot(S_t[ist, ist2], c_t[ist2]))\
-                            + np.dot(np.conjugate(c_t[ist2]),
-                                     np.dot(S_t[ist2, ist], c_t[ist]))))
-                self.nuc_pop[ist] = pop_ist
-                norm[i] += pop_ist * self.traj[key1].populations[i]
-                self.el_pop[i] = norm[i]
-#         print "nuc_pop = ", self.nuc_pop
+                    nuc_pop += np.real(
+                        0.5 * (np.dot(np.conjugate(c_t[nuc_ind]),
+                        np.dot(S_t[nuc_ind, nuc_ind2], c_t[nuc_ind2]))\
+                        + np.dot(np.conjugate(c_t[nuc_ind2]),
+                        np.dot(S_t[nuc_ind2, nuc_ind], c_t[nuc_ind]))))
+                self.nuc_pop[nuc_ind] = nuc_pop
+                norm[n_el_state] += nuc_pop\
+                    * self.traj[key1].populations[n_el_state]
 
+            self.el_pop[n_el_state] = norm[n_el_state]
 
     def rescale_amplitudes(self, key, label, traj_1, traj_2,
                            ind_1, ind_2, nuc_norm, new_dim):
@@ -671,7 +675,6 @@ class Simulation(fmsobj):
                 else:
                     # If we use approximate eigenstates
                     pop_to_check = self.traj[key].approx_pop
-
                 clone_now = True
                 # Energy of a specific state is larger than threshold
                 clone_now *= self.traj[key].clone_e_gap[istate] > self.e_gap_thresh
@@ -758,7 +761,7 @@ class Simulation(fmsobj):
                     else:
                         self.clone_again = False
                         continue
-
+                    
     def restart_from_file(self, json_file, h5_file):
         """restarts from the current json file and copies
         the simulation data into working.hdf5"""
@@ -918,7 +921,6 @@ class Simulation(fmsobj):
             if self.traj_map[key] < ntraj:
                 self.traj[key].get_all_qm_data_at_time_from_h5(qm_time)
 
-###########################################################################
     def get_numtasks(self):
         """get the number of tasks in the queue"""
 

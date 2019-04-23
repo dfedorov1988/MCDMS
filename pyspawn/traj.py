@@ -143,9 +143,7 @@ class traj(fmsobj):
 
         approx_eigenvecs = np.linalg.eigh(Hk)[1]
         # Getting eigenvectors from approximate ones
-        eigenvectors = np.dot(
-            tr_matrix, np.dot(approx_eigenvecs,
-                              np.transpose(np.conjugate(tr_matrix))))
+#         eigenvectors_orig_basis = np.dot(tr_matrix, approx_eigenvecs)
         nstates = self.krylov_sub_n
         eigenvecs = approx_eigenvecs
         H = Hk
@@ -713,10 +711,12 @@ class traj(fmsobj):
         if np.dot(np.transpose(np.conjugate(wf)), wf) < 1e-8:
             print "WF = 0, constructing electronic wf for the first timestep"
             wf = eigenvectors[:, -1] # starting on the highest energy state
+            self.wf_store_full_ts = symplectic_backprop(
+                    H_elec, wf, el_timestep, n_krylov, n_krylov, self.numstates)
         else:
             if not self.first_step:
                 print "\nPropagating electronic wave function not first step"
-                wf = propagate_symplectic(self, (H_elec), wf, self.timestep/2,
+                wf = propagate_symplectic(self, H_elec, wf, self.timestep/2,
                                           n_el_steps/2, n_krylov)
                 self.wf_store_full_ts = self.wf_store.copy()
 
@@ -743,8 +743,7 @@ class traj(fmsobj):
             av_force[n] = -np.real(np.dot(np.dot(wf_T, force[n]), wf))
 
         # test: getting real eigenvectors from approximate
-        eigenvectors = np.dot(np.dot(tr_matrix, approx_eigenvecs),
-                              np.transpose(np.conjugate(tr_matrix)))
+#         eigenvectors_orig_basis = np.dot(tr_matrix, approx_eigenvecs)
         for j in range(self.numstates):
             amp[j] = np.dot(np.conjugate(np.transpose(eigenvectors[:, j])), wf)
             pop[j] = np.real(np.dot(np.transpose(np.conjugate(amp[j])), amp[j]))
