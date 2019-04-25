@@ -1,5 +1,6 @@
 import numpy as np
 import math
+import sys
 
 
 def calc_force_energy(wave_func, hamiltonian, force_mat, numdims):
@@ -22,12 +23,12 @@ def calc_kin_en(mom, mass, numdims):
 
     return kin_e
 
+
 def rescale_momentum(pot_e_ini, pot_e_fin, mom_ini, mass, numdims):
     """This subroutine rescales the momentum of the child basis function
     The difference from spawning here is that the average Ehrenfest energy
     is rescaled, not of the pure electronic states"""
 
-#         mass = self.masses
     kin_e_ini = calc_kin_en(mom_ini, mass, numdims)
     factor = ((pot_e_ini + kin_e_ini - pot_e_fin) / kin_e_ini)
 
@@ -47,8 +48,9 @@ def rescale_momentum(pot_e_ini, pot_e_fin, mom_ini, mass, numdims):
     if pot_e_ini + kin_e_ini - pot_e_fin - t_fin > 1e-9:
         print "ENERGY NOT CONSERVED!!!"
         sys.exit
-    
+
     return True, factor * mom_ini
+
 
 def symplectic_backprop(H, wf, el_timestep, nsteps, n_krylov, numstates):
     """Immediately after cloning we do not have the electronic wf
@@ -80,7 +82,7 @@ def propagate_symplectic(self, H, wf, timestep, nsteps, n_krylov):
     el_timestep = timestep / nsteps
     c_r = np.real(wf)
     c_i = np.imag(wf)
-    n = 0 # counter for how many saved electronic wf components we have
+    n = 0  # counter for how many saved electronic wf components we have
     for i in range(nsteps):
 
         c_r_dot = np.dot(H, c_i)
