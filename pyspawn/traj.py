@@ -452,6 +452,8 @@ class traj(fmsobj):
         trajgrp.attrs["widths"] = self.widths
         trajgrp.attrs["full_H"] = self.full_H
         trajgrp.attrs["krylov_sub_n"] = self.krylov_sub_n
+        trajgrp.attrs["numstates"] = self.numstates
+        trajgrp.attrs['numdims'] = self.numdims
         if hasattr(self, "atoms"):
             trajgrp.attrs["atoms"] = self.atoms
 

@@ -202,25 +202,25 @@ class Simulation(fmsobj):
 
     def qm_propagate_step(self, zoutput_first_step=False):
         """Exponential integrator (***Needs reference***)"""
-    
+
         c1i = (complex(0.0, 1.0))
         self.compute_num_traj_qm()
         qm_t = self.quantum_time
         dt = self.timestep
         qm_tpdt = qm_t + dt 
         ntraj = self.num_traj_qm
-    
+
         amps_t = self.qm_amplitudes
         print "Building effective Hamiltonian for the first half step"
         self.build_Heff_half_timestep()
         self.calc_approx_el_populations()
         norm = np.dot(np.conjugate(np.transpose(amps_t)), np.dot(self.S, amps_t))
         #print "Norm first half =", norm    
-        
+
         # output the first step before propagating
         if zoutput_first_step:
             self.h5_output()
-    
+
         iHdt = (-0.5 * dt * c1i) * self.Heff
         W,R = la.eig(iHdt)
         X = np.exp( W )
@@ -244,7 +244,7 @@ class Simulation(fmsobj):
         self.qm_amplitudes = amps 
         norm = np.dot(np.conjugate(np.transpose(amps)), np.dot(self.S, amps))
         #print "Norm second half =", norm
-        if abs(norm-1.0) > 0.01:
+        if abs(norm - 1.0) > 0.01:
             print "Warning: nuclear norm deviated from 1: norm =", norm 
         print "Done with quantum propagation"            
 
@@ -745,8 +745,8 @@ class Simulation(fmsobj):
                         traj_2.new_amp = rescaled_amp_2
 
                         if abort_clone:
-                            print "Aborting cloning due to large overlap with\
-                            existing trajectory"
+                            print "Aborting cloning due to large overlap with",
+                            " existing trajectory"
                             self.clone_again = False
                             continue
 
@@ -967,7 +967,8 @@ class Simulation(fmsobj):
                 return
 
     def from_dict(self, **tempdict):
-        """Convert dict to simulation data structure"""
+        """Converts dict to simulation data structure
+        This is used for restart"""
 
         for key in tempdict:
             if isinstance(tempdict[key], types.UnicodeType):
@@ -1001,44 +1002,22 @@ class Simulation(fmsobj):
                 else:
                     for key2 in tempdict[key]:
                         if isinstance((tempdict[key])[key2], types.DictType):
-                            fmsobjlabel = ((tempdict[key])[key2]).pop('fmsobjlabel')
-                            obj = eval(fmsobjlabel[8:])()
-                            obj.from_dict(**((tempdict[key])[key2]))
-                            (tempdict[key])[key2] = obj
+                            if key == 'traj':
+                                # This is a hack that fixes the previous hack lol
+                                # initially trajectory's init didn't have numstates
+                                # and numdims which caused certain issues
+                                # so I'm adding the variables for traj initialization
+                                # to make restart work 
+                                numdims = tempdict[key][key2]['numdims']
+                                numstates = tempdict[key][key2]['numstates']
+                                krylov_sub_n = tempdict[key][key2]['krylov_sub_n']
+                                fmsobjlabel = ((tempdict[key])[key2]).pop('fmsobjlabel')
+                                obj = eval(fmsobjlabel[8:])(numdims, numstates, krylov_sub_n)
+                                obj.from_dict(**((tempdict[key])[key2]))
+                                (tempdict[key])[key2] = obj
+                            else:
+                                fmsobjlabel = ((tempdict[key])[key2]).pop('fmsobjlabel')
+                                obj = eval(fmsobjlabel[8:])()
+                                obj.from_dict(**((tempdict[key])[key2]))
+                                (tempdict[key])[key2] = obj
         self.__dict__.update(tempdict)
-
-#     def overlap_nuc(self, pos_i, pos_j, mom_i, mom_j, widths_i, widths_j):
-#         """Calculates nuclear overlap of two Gaussians"""
-# 
-#         Sij = 1.0
-#         for idim in range(self.traj["00"].numdims):
-#             xi = pos_i[idim]
-#             xj = pos_j[idim]
-#             di = mom_i[idim]
-#             dj = mom_j[idim]
-#             xwi = widths_i[idim]
-#             xwj = widths_j[idim]
-#             Sij *= overlap_nuc_1d(xi, xj, di, dj, xwi, xwj)
-# 
-#         return Sij
-# 
-# def overlap_nuc_1d(xi, xj, di, dj, xwi, xwj):
-#     """Compute 1-dimensional nuclear overlaps"""
-# 
-#     c1i = (complex(0.0, 1.0))
-#     deltax = xi - xj
-#     pdiff = di - dj
-#     osmwid = 1.0 / (xwi + xwj)
-# 
-#     xrarg = osmwid * (xwi*xwj*deltax*deltax + 0.25*pdiff*pdiff)
-#     if xrarg < 10.0:
-#         gmwidth = math.sqrt(xwi*xwj)
-#         ctemp = (di*xi - dj*xj)
-#         ctemp = ctemp - osmwid * (xwi*xi + xwj*xj) * pdiff
-#         cgold = math.sqrt(2.0 * gmwidth * osmwid)
-#         cgold = cgold * math.exp(-1.0 * xrarg)
-#         cgold = cgold * cmath.exp(ctemp * c1i)
-#     else:
-#         cgold = 0.0
-# 
-#     return cgold
