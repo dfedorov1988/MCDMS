@@ -7,7 +7,7 @@ from scipy import linalg as lin
 from pyspawn.fmsobj import fmsobj
 from pyspawn.potential.linear_slope import construct_ham_lin_slope
 from pyspawn.misc import calc_amp_pop, clone_to_a_state,\
-    bra_ket, expec_value, propagate_symplectic, symplectic_backprop,\
+    expec_value, propagate_symplectic, symplectic_backprop,\
     rescale_momentum, calc_kin_en, calc_force_energy
 
 
@@ -63,7 +63,8 @@ class traj(fmsobj):
         self.av_force = np.zeros(self.numdims)
         self.eigenvecs = np.zeros((self.numstates, self.numstates),
                                   dtype=np.complex128)
-        self.approx_eigenvecs = np.zeros((self.krylov_sub_n, self.krylov_sub_n),
+        self.approx_eigenvecs = np.zeros((self.krylov_sub_n,
+                                          self.krylov_sub_n),
                                          dtype=np.complex128)
         self.approx_energies = np.zeros(self.krylov_sub_n)
         self.approx_amp = np.zeros((self.krylov_sub_n), dtype=np.complex128)
@@ -77,7 +78,7 @@ class traj(fmsobj):
         self.clone_e_gap = np.zeros(self.numstates)
         self.clone_e_gap_prev = np.zeros(self.numstates)
 
-    def init_traj(self, time, ndims, pos, mom, wid, masses, nstates, istat, lab):
+    def init_traj(self, time, ndims, pos, mom, wid, masses, nstates, lab):
         """Initialize trajectory"""
 
         self.time = time
@@ -114,7 +115,7 @@ class traj(fmsobj):
         if hasattr(parent, 'electronic_phases'):
             self.electronic_phases = parent.electronic_phases
 
-    def init_clone_traj_approx(self, parent, istate, label, nuc_norm):
+    def init_clone_traj_approx(self, parent, istate, label):
         """Initialize cloned trajectory (cloning to a state)
         from approximate eigenstates"""
 
@@ -167,20 +168,21 @@ class traj(fmsobj):
 
         if child_rescale_ok:
 
-            parent_tot_e = tmp_energy + calc_kin_en(mom_t, parent.masses, parent.numdims)
+            parent_tot_e = tmp_energy + calc_kin_en(mom_t, parent.masses,
+                                                    parent.numdims)
             child_tot_e = child_energy +\
-            calc_kin_en(child_rescaled_momenta, self.masses, self.numdims)
+                calc_kin_en(child_rescaled_momenta, self.masses, self.numdims)
             print "child_E after rescale =", child_tot_e
             print "parent E before rescale=", parent_tot_e
             print "Rescaling parent's momentum"
             parent_rescale_ok, parent_rescaled_momenta\
-            = rescale_momentum(tmp_energy, float(parent_energy),
-                               mom_t, parent.masses, parent.numdims)
+                = rescale_momentum(tmp_energy, float(parent_energy),
+                                   mom_t, parent.masses, parent.numdims)
             if not parent_rescale_ok:
                 return False
             print "parent E after rescale = ",\
-            calc_kin_en(parent_rescaled_momenta, parent.masses, parent.numdims)\
-            + parent_energy
+                calc_kin_en(parent_rescaled_momenta,
+                            parent.masses, parent.numdims) + parent_energy
 
             if parent_rescale_ok:
                 # Setting mintime to current time to avoid backpropagation
@@ -192,11 +194,13 @@ class traj(fmsobj):
                 # child amplitude rescale
                 self.rescale_amp[0] = amp[istate] / child_amp[istate]
                 # parent amplitude rescale
-                for n  in range(nstates):
+                for n in range(nstates):
                     if n != istate:
                         parent.rescale_amp[0] = amp[n] / parent_amp[n]
-                print "Rescaling parent amplitude by a factor ", parent.rescale_amp
-                print "Rescaling child amplitude by a factor ", self.rescale_amp
+                print "Rescaling parent amplitude by a factor ",\
+                    + parent.rescale_amp
+                print "Rescaling child amplitude by a factor ",\
+                    self.rescale_amp
 
                 # Updating quantum parameters of child
                 self.av_energy = float(child_energy)
@@ -252,7 +256,7 @@ class traj(fmsobj):
 
                 return True
 
-    def init_clone_traj_to_a_state(self, parent, istate, label, nuc_norm):
+    def init_clone_traj_to_a_state(self, parent, istate, label):
         """Initialize cloned trajectory (cloning to a state, same way as in original
         paper on AIMC"""
 
@@ -282,27 +286,27 @@ class traj(fmsobj):
 
         print "Rescaling child's momentum:"
         child_rescale_ok, child_rescaled_momenta\
-        = rescale_momentum(tmp_energy, child_energy,
-                           mom_t, self.masses, self.numdims)
+            = rescale_momentum(tmp_energy, child_energy,
+                               mom_t, self.masses, self.numdims)
 
         if child_rescale_ok:
 
             parent_tot_e = tmp_energy\
                 + calc_kin_en(mom_t, parent.masses, parent.numdims)
             child_tot_e = child_energy +\
-                calc_kin_en(child_rescaled_momenta, self.masses, parent.numdims)
+                calc_kin_en(child_rescaled_momenta,
+                            self.masses, parent.numdims)
             print "child_E after rescale =", child_tot_e
             print "parent E before rescale=", parent_tot_e
             print "Rescaling parent's momentum"
             parent_rescale_ok, parent_rescaled_momenta\
-            = rescale_momentum(
-                tmp_energy, float(parent_energy),
-                mom_t, parent.masses, parent.numdims)
+                = rescale_momentum(tmp_energy, float(parent_energy),
+                                   mom_t, parent.masses, parent.numdims)
             if not parent_rescale_ok:
                 return False
             print "parent E after rescale = ",\
-            calc_kin_en(parent_rescaled_momenta, parent.masses, parent.numdims)\
-                + parent_energy
+                calc_kin_en(parent_rescaled_momenta,
+                            parent.masses, parent.numdims) + parent_energy
 
             if parent_rescale_ok:
 
@@ -315,11 +319,14 @@ class traj(fmsobj):
                 # child amplitude rescale
                 self.rescale_amp[0] = tmp_amp[istate] / child_amp[istate]
                 # parent amplitude rescale
-                for n_state  in range(self.numstates):
+                for n_state in range(self.numstates):
                     if n_state != istate:
-                        parent.rescale_amp[0] = tmp_amp[n_state] / parent_amp[n_state]
-                print "Rescaling parent amplitude by a factor ", parent.rescale_amp
-                print "Rescaling child amplitude by a factor ", self.rescale_amp
+                        parent.rescale_amp[0] = tmp_amp[n_state]\
+                            / parent_amp[n_state]
+                print "Rescaling parent amplitude by a factor ",\
+                    parent.rescale_amp
+                print "Rescaling child amplitude by a factor ",\
+                    self.rescale_amp
 
                 # Updating quantum parameters for child
                 self.td_wf_full_ts = child_wf
@@ -346,9 +353,9 @@ class traj(fmsobj):
                 parent.av_force = parent_force
                 parent.energies = eigenvals
                 parent.eigenvecs = eigenvectors
-                parent.first_step = True # this makes sure the parent trajectory
-                # in VV propagated as first step because the wave function is
-                # at the full TS, should be half step ahead
+                parent.first_step = True  # this makes sure the parent
+                # trajectory in VV propagated as first step because
+                # the wave function is at full TS, should be half step ahead
 
                 return True
 
@@ -358,8 +365,8 @@ class traj(fmsobj):
         first_step variable here ensures that
         we don't write to h5 file twice! (see vv.py)"""
 
-        if float(self.time) - float(self.firsttime) < (self.timestep -1e-6)\
-        or self.first_step:
+        if float(self.time) - float(self.firsttime) < (self.timestep - 1e-6)\
+                or self.first_step:
             self.prop_first_step()
         else:
             self.prop_not_first_step()
@@ -401,18 +408,17 @@ class traj(fmsobj):
             self.create_h5_traj(h5f, groupname)
         trajgrp = h5f.get(groupname)
         all_datasets = self.h5_datasets.copy()
-        dset_time = trajgrp["time"][:]
 
         for key in all_datasets:
             n = all_datasets[key]
             dset = trajgrp.get(key)
             length = dset.len()
 
-            """This is not ideal, but couldn't find a better way to do this:
-               During cloning the parent ES parameters change,
-               but the hdf5 file already has the data for the timestep,
-               so this just overwrites the previous values
-               if parameter first step is true"""
+            # This is not ideal, but couldn't find a better way to do this:
+            # During cloning the parent ES parameters change,
+            # but the hdf5 file already has the data for the time step,
+            # so this just overwrites the previous values
+            # if parameter first step is true
 
             if self.first_step and self.time > 1e-6 and length > 0:
                 ipos = length - 1
@@ -420,15 +426,14 @@ class traj(fmsobj):
                 dset.resize(length + 1, axis=0)
                 ipos = length
 
-            getcom = "self." + key
-            tmp = eval(getcom)
-            if key == 'wf_store':
-                tmp = np.ndarray.flatten(np.real(tmp))
+            cur_attr = getattr(self, key)
+            if key == 'wf_store' or key == 'wf_store_full_ts':
+                cur_attr = np.ndarray.flatten(np.real(cur_attr))
 
             if n != 1:
-                dset[ipos, 0:n] = tmp[0:n]
+                dset[ipos, 0:n] = cur_attr[0:n]
             else:
-                dset[ipos, 0] = tmp
+                dset[ipos, 0] = cur_attr
 
         h5f.flush()
         h5f.close()
@@ -440,12 +445,12 @@ class traj(fmsobj):
         for key in self.h5_datasets:
             n = self.h5_datasets[key]
             if key == "td_wf" or key == "mce_amps" or key == "td_wf_full_ts"\
-            or key == "approx_wf_full_ts":
-                dset = trajgrp.create_dataset(key, (0, n), maxshape=(None, n),
-                                              dtype="complex128")
+                    or key == "approx_wf_full_ts":
+                trajgrp.create_dataset(key, (0, n), maxshape=(None, n),
+                                       dtype="complex128")
             else:
-                dset = trajgrp.create_dataset(key, (0, n), maxshape=(None, n),
-                                              dtype="float64")
+                trajgrp.create_dataset(key, (0, n), maxshape=(None, n),
+                                       dtype="float64")
 
         # add some metadata
         trajgrp.attrs["masses"] = self.masses
@@ -458,7 +463,8 @@ class traj(fmsobj):
             trajgrp.attrs["atoms"] = self.atoms
 
     def get_data_at_time_from_h5(self, time_req, dset_name):
-        """This subroutine gets trajectory data from "dset_name" array at a certain time"""
+        """This subroutine gets trajectory data from "dset_name" array
+        at a certain time"""
 
         h5f = h5py.File("working.hdf5", "r")
         groupname = "traj_" + self.label
@@ -466,40 +472,41 @@ class traj(fmsobj):
         dset_time = trajgrp["time"][:]
         ipoint = -1
         for i, cur_time in enumerate(dset_time):
-            if (cur_time < time_req + 1.0e-6) and (cur_time > time_req - 1.0e-6):
+            if (cur_time < time_req + 1.0e-6)\
+                    and (cur_time > time_req - 1.0e-6):
                 ipoint = i
-                #print "dset_time[i] ", dset_time[i]
-                #print "i ", i
+
         dset = trajgrp[dset_name][:]
-        data = np.zeros(len(dset[ipoint, :]))
+#         data = np.zeros(len(dset[ipoint, :]))
         data = dset[ipoint, :]
-        #print "dset[ipoint,:] ", dset[ipoint,:]
         h5f.close()
+
         return data
 
     def get_all_qm_data_at_time_from_h5(self, time_req, suffix=""):
-        """This subroutine pulls all arrays from the trajectory at a certain time and assigns
-        results to the same variable names with _qm suffix. The _qm variables essentially
-        match the values at _t, added for clarity."""
+        """This subroutine pulls all arrays from the trajectory at a certain
+        time and assigns results to the same variable names with _qm suffix.
+        The _qm variables essentially match the values at _t,
+        added for clarity."""
 
         h5f = h5py.File("working.hdf5", "r")
         groupname = "traj_" + self.label
         trajgrp = h5f.get(groupname)
         dset_time = trajgrp["time"][:]
-        #print "size", dset_time.size
         ipoint = -1
+
         for i, cur_time in enumerate(dset_time):
-            if (cur_time < time_req + 1.0e-6) and (cur_time > time_req - 1.0e-6):
+            if (cur_time < time_req + 1.0e-6)\
+                    and (cur_time > time_req - 1.0e-6):
                 ipoint = i
 
         for dset_name in self.h5_datasets:
             dset = trajgrp[dset_name][:]
             data = np.zeros(len(dset[ipoint, :]))
             data = dset[ipoint, :]
-            comm = "self." + dset_name + "_qm" + suffix + " = data"
-            exec(comm)
-#             print "comm ", comm
-#             print "dset[ipoint,:] ", dset[ipoint,:]
+            attr = dset_name + "_qm" + suffix
+            dset = setattr(self, attr, data)
+
         h5f.close()
 
     def prop_first_step(self):
@@ -549,8 +556,8 @@ class traj(fmsobj):
         self.momenta_full_ts = p_tpdt
 
     def prop_not_first_step(self):
-        """Velocity Verlet propagator for not first timestep. Here we call electronic structure
-        property calculation only once"""
+        """Velocity Verlet propagator for not first timestep.
+        Here we call electronic structure property calculation only once"""
 
         dt = self.timestep
         x_t = self.positions
@@ -598,7 +605,7 @@ class traj(fmsobj):
 
         sqrtm = np.sqrt(m)
 
-        #build mass weighted hessian
+        # build mass weighted hessian
         h_mw = np.zeros_like(h)
 
         for idim in range(ndims):
@@ -652,22 +659,20 @@ class traj(fmsobj):
         self.positions = pos
         self.momenta = mom
 
-        zpe = np.sum(alphax[0 : (ndims - 6)])
+        zpe = np.sum(alphax[0:(ndims - 6)])
         ke = 0.5 * np.sum(mom * mom / m)
 
         print "ZPE = ", zpe
         print "Kinetic energy = ", ke
 
-#################################################
-### electronic structure routines go here #######
-#################################################
+    # Electronic structure routines go here #######
 
-# Each electronic structure method requires at least two routines:
-#    1) compute_elec_struct_, which computes energies, forces, and wfs
-#    2) init_h5_datasets_, which defines the datasets to be output to hdf5
-#    3) potential_specific_traj_copy, which copies data that is potential specific
-#    from one traj data structure to another
-#    other ancillary routines may be included as well
+    # Each electronic structure method requires at least two routines:
+    # 1) compute_elec_struct_, which computes energies, forces, and wfs
+    # 2) init_h5_datasets_, which defines the datasets to be output to hdf5
+    # 3) potential_specific_traj_copy, which copies data that is potential
+    # specific from one traj data structure to another.
+    # Other ancillary routines may be included as well
 
     def compute_elec_struct(self):
         """Electronic structure model for a 1d system with multiple parallel states
@@ -712,9 +717,10 @@ class traj(fmsobj):
 
         if np.dot(np.transpose(np.conjugate(wf)), wf) < 1e-8:
             print "WF = 0, constructing electronic wf for the first timestep"
-            wf = eigenvectors[:, -1] # starting on the highest energy state
+            wf = eigenvectors[:, -1]  # starting on the highest energy state
             self.wf_store_full_ts = symplectic_backprop(
-                    H_elec, wf, el_timestep, n_krylov, n_krylov, self.numstates)
+                H_elec, wf, el_timestep, n_krylov,
+                n_krylov, self.numstates)
         else:
             if not self.first_step:
                 print "\nPropagating electronic wave function not first step"
@@ -723,9 +729,11 @@ class traj(fmsobj):
                 self.wf_store_full_ts = self.wf_store.copy()
 
             if self.first_step:
-                print "\nFirst step, skipping electronic wave function propagation"
+                print "\nFirst step, skipping electronic wave',\
+                    'function propagation"
                 self.wf_store_full_ts = symplectic_backprop(
-                    H_elec, wf, el_timestep, n_krylov, n_krylov, self.numstates)
+                    H_elec, wf, el_timestep, n_krylov,
+                    n_krylov, self.numstates)
 
         wf_T = np.transpose(np.conjugate(wf))
         av_energy = np.real(np.dot(np.dot(wf_T, H_elec), wf))
@@ -733,8 +741,8 @@ class traj(fmsobj):
         tr_matrix = np.linalg.qr(self.wf_store_full_ts)[0]
         Hk = np.dot(np.transpose(np.conjugate(tr_matrix)),
                     np.dot(H_elec, tr_matrix))
-        Fk = np.dot(np.transpose(np.conjugate(tr_matrix)),
-                    np.dot(force, tr_matrix))
+#         Fk = np.dot(np.transpose(np.conjugate(tr_matrix)),
+#                     np.dot(force, tr_matrix))
 
         approx_e, approx_eigenvecs = np.linalg.eigh(Hk)
         self.approx_energies = approx_e
@@ -748,7 +756,8 @@ class traj(fmsobj):
 #         eigenvectors_orig_basis = np.dot(tr_matrix, approx_eigenvecs)
         for j in range(self.numstates):
             amp[j] = np.dot(np.conjugate(np.transpose(eigenvectors[:, j])), wf)
-            pop[j] = np.real(np.dot(np.transpose(np.conjugate(amp[j])), amp[j]))
+            pop[j] = np.real(np.dot(np.transpose(np.conjugate(amp[j])),
+                                    amp[j]))
 
         norm = np.dot(wf_T, wf)
         if abs(norm - 1.0) > 1e-6:
@@ -761,7 +770,8 @@ class traj(fmsobj):
             approx_amp[j] = np.dot(
                 np.conjugate(np.transpose(approx_eigenvecs[:, j])), approx_wf)
             approx_pop[j] = np.real(
-                np.dot(np.transpose(np.conjugate(approx_amp[j])), approx_amp[j]))
+                np.dot(np.transpose(np.conjugate(approx_amp[j])),
+                       approx_amp[j]))
 
         # Assigning variables to the current trajectory object
         self.approx_amp = approx_amp
@@ -781,11 +791,12 @@ class traj(fmsobj):
             print "The trajectory reached the inflection point: exiting"
             sys.exit()
 
-        #print_stuff()
+#         print_stuff()
 
         # This part performs the propagation of the electronic wave function
-        # for ehrenfest dynamics at a half step and save it
-        wf = propagate_symplectic(self, H_elec, wf, self.timestep / 2, n_el_steps / 2, n_krylov)
+        # for Ehrenfest dynamics at a half step and save it
+        wf = propagate_symplectic(self, H_elec, wf, self.timestep / 2,
+                                  n_el_steps / 2, n_krylov)
 
         # Saving electronic wf and Hamiltonian
         self.td_wf = wf

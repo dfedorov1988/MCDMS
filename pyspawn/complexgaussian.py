@@ -1,47 +1,44 @@
-# this module contains functions for doing complex Gaussian math.  Right
-# now everything is hard coded for adiabatic/diabatic representation, but
-# it shouldn't be hard to modify for DGAS
+"""This module contains functions for doing complex Gaussian math.
+Everything is hard coded for adiabatic/diabatic representation"""
 
-import sys
-import types
 import math
 import cmath
 import numpy as np
-from pyspawn.fmsobj import fmsobj
-from pyspawn.traj import traj
 
 
 def overlap_nuc(positions_i, positions_j, momenta_i, momenta_j, widths_i,
                 widths_j, numdims):
-    """Compute the overlap of two nuclear TBFs (electronic part not included)"""
+    """Compute the overlap of two nuclear TBFs i and j
+    (electronic part not included)"""
 
-    Sij = 1.0
+    overlap = 1.0
 
     for idim in range(numdims):
-        xi = positions_i[idim]
-        xj = positions_j[idim]
-        di = momenta_i[idim]
-        dj = momenta_j[idim]
-        xwi = widths_i[idim]
-        xwj = widths_j[idim]
-        Sij *= overlap_nuc_1d(xi, xj, di, dj, xwi, xwj)
+        pos_i_1d = positions_i[idim]
+        pos_j_1d = positions_j[idim]
+        mom_i_1d = momenta_i[idim]
+        mom_j_1d = momenta_j[idim]
+        width_i_1d = widths_i[idim]
+        width_j_1d = widths_j[idim]
+        overlap *= overlap_nuc_1d(pos_i_1d, pos_j_1d, mom_i_1d, mom_j_1d,
+                                  width_i_1d, width_j_1d)
 
-    return Sij
+    return overlap
 
 
-def overlap_nuc_1d(xi, xj, di, dj, xwi, xwj):
+def overlap_nuc_1d(pos_i, pos_j, mom_i, mom_j, width_i, width_j):
     """Compute 1-dimensional nuclear overlaps"""
 
     c1i = (complex(0.0, 1.0))
-    deltax = xi - xj
-    pdiff = di - dj
-    osmwid = 1.0 / (xwi + xwj)
+    delta_x = pos_i - pos_j
+    p_diff = mom_i - mom_j
+    osmwid = 1.0 / (width_i + width_j)
 
-    xrarg = osmwid * (xwi*xwj*deltax*deltax + 0.25*pdiff*pdiff)
-    if (xrarg < 10.0):
-        gmwidth = math.sqrt(xwi*xwj)
-        ctemp = (di*xi - dj*xj)
-        ctemp = ctemp - osmwid * (xwi*xi + xwj*xj) * pdiff
+    xrarg = osmwid * (width_i*width_j*delta_x*delta_x + 0.25*p_diff*p_diff)
+    if xrarg < 10.0:
+        gmwidth = math.sqrt(width_i*width_j)
+        ctemp = (mom_i*pos_i - mom_j*pos_j)
+        ctemp = ctemp - osmwid * (width_i*pos_i + width_j*pos_j) * p_diff
         cgold = math.sqrt(2.0 * gmwidth * osmwid)
         cgold = cgold * math.exp(-1.0 * xrarg)
         cgold = cgold * cmath.exp(ctemp * c1i)
@@ -55,42 +52,47 @@ def kinetic_nuc(positions_i, positions_j, momenta_i, momenta_j, widths_i,
                 widths_j, masses_i, numdims):
     """compute the kinetic energy matrix element between two nuclear TBFs"""
 
-    S1D = np.zeros(numdims, dtype=np.complex128)
-    T1D = np.zeros(numdims, dtype=np.complex128)
+    overlap_1d = np.zeros(numdims, dtype=np.complex128)
+    kin_e_1d = np.zeros(numdims, dtype=np.complex128)
 
     for idim in range(numdims):
-        xi = positions_i[idim]
-        xj = positions_j[idim]
-        di = momenta_i[idim]
-        dj = momenta_j[idim]
-        xwi = widths_i[idim]
-        xwj = widths_j[idim]
-        m = masses_i[idim]
+        pos_i_1d = positions_i[idim]
+        pos_j_1d = positions_j[idim]
+        mom_i_1d = momenta_i[idim]
+        mom_j_1d = momenta_j[idim]
+        width_i_1d = widths_i[idim]
+        width_j_1d = widths_j[idim]
+        mass_i_1d = masses_i[idim]
 
-        T1D[idim] = 0.5 * kinetic_nuc_1d(xi, xj, di, dj, xwi, xwj) / m
-        S1D[idim] = overlap_nuc_1d(xi, xj, di, dj, xwi, xwj)
+        kin_e_1d[idim] = 0.5 * kinetic_nuc_1d(pos_i_1d, pos_j_1d, mom_i_1d,
+                                              mom_j_1d, width_i_1d,
+                                              width_j_1d) / mass_i_1d
+        overlap_1d[idim] = overlap_nuc_1d(pos_i_1d, pos_j_1d, mom_i_1d,
+                                          mom_j_1d, width_i_1d,
+                                          width_j_1d)
 
-    Tij = 0.0
+    kin_e_ij = 0.0
     for idim in range(numdims):
-        Ttmp = T1D[idim]
+        Ttmp = kin_e_1d[idim]
         for jdim in range(numdims):
             if jdim != idim:
-                Ttmp *= S1D[jdim]
-        Tij += Ttmp
+                Ttmp *= overlap_1d[jdim]
+        kin_e_ij += Ttmp
 
-    return Tij
+    return kin_e_ij
 
 
-def kinetic_nuc_1d(xi, xj, di, dj, xwi, xwj):
+def kinetic_nuc_1d(pos_i, pos_j, mom_i, mom_j, width_i, width_j):
     """compute 1-dimensional nuclear kinetic energy matrix elements"""
-    
+
     c1i = (complex(0.0, 1.0))
-    psum = di + dj
-    deltax = xi - xj
-    dkerfac = xwi + 0.25 * psum * psum - xwi * xwi * deltax * deltax
-    dkeifac = xwi * deltax * psum
-    olap = overlap_nuc_1d(xi, xj, di, dj, xwi, xwj)
-    kinetic = (dkerfac + c1i * dkeifac) * olap
+    p_sum = mom_i + mom_j
+    delta_x = pos_i - pos_j
+    d_ke_r_fac = width_i + 0.25 * p_sum * p_sum\
+        - width_i * width_i * delta_x * delta_x
+    d_ke_i_fac = width_i * delta_x * p_sum
+    olap = overlap_nuc_1d(pos_i, pos_j, mom_i, mom_j, width_i, width_j)
+    kinetic = (d_ke_r_fac + c1i * d_ke_i_fac) * olap
 
     return kinetic
 
@@ -98,20 +100,20 @@ def kinetic_nuc_1d(xi, xj, di, dj, xwi, xwj):
 def Sdot_nuc(positions_i, positions_j, momenta_i, momenta_j, widths_i,
              widths_j, forces_j, masses_i, numdims):
     """Compute the Sdot matrix element between two nuclear TBFs"""
-    
+
     c1i = (complex(0.0, 1.0))
 
-    Sij = overlap_nuc(positions_i, positions_j, momenta_i, momenta_j, widths_i,
-                widths_j, numdims)
+    overlap = overlap_nuc(positions_i, positions_j, momenta_i, momenta_j,
+                          widths_i, widths_j, numdims)
 
     delta_r = positions_i - positions_j
-    psum = momenta_i + momenta_j
-    pdiff = momenta_i - momenta_j
+    mom_sum = momenta_i + momenta_j
+    mom_diff = momenta_i - momenta_j
     o4wj = 0.25 / widths_j
-    Cdbydr = widths_j * delta_r - (0.5 * c1i) * psum
-    Cdbydp = o4wj * pdiff + (0.5 * c1i) * delta_r
+    Cdbydr = widths_j * delta_r - (0.5 * c1i) * mom_sum
+    Cdbydp = o4wj * mom_diff + (0.5 * c1i) * delta_r
     Ctemp1 = Cdbydr * momenta_j / masses_i + Cdbydp * forces_j
-    Ctemp = np.sum(Ctemp1)    
-    Sdot_ij = Ctemp * Sij
-    
+    Ctemp = np.sum(Ctemp1)
+    Sdot_ij = Ctemp * overlap
+
     return Sdot_ij

@@ -1,6 +1,5 @@
 # this script starts a new FMS calculation on a model cone potential
 import numpy as np
-import pyspawn
 import pyspawn.general
 import os
 
@@ -29,11 +28,11 @@ t0 = 0.0
 ts = 0.1
 # final simulation time
 tfinal = 80.0
-# number of dimensions                                                                                           
+# number of dimensions
 numdims = 1
-# number of electronic states                                                                                                           
+# number of electronic states
 numstates = 5
-# number of electronic timesteps within one nuclear
+# number of electronic time steps within one nuclear
 n_el_steps = 100
 
 # trajectory parameters
@@ -43,7 +42,7 @@ traj_params = {
     "maxtime": tfinal,
     # Gaussian widths
     "widths": np.asarray([6.0]),
-    # nuclear masses (in a.u)    
+    # nuclear masses (in a.u)
     "masses": np.asarray([1822.0]),
     # initial positions
     "positions": np.asarray([-0.2]),
@@ -68,18 +67,14 @@ sim_params = {
     "nuc_pop_thresh": nuc_pop_thresh,
     "num_el_states": numstates,
     # type of cloning procedure:
-    # "toastate" : cloning on to a state energy of which is different from average
+    # "toastate" : cloning on to a state energy of
+    # which is different from average
     # "pairwise" : considering each pair, transferring population between them
     "cloning_type": "toastate",
 }
 
-# import routines needed for propagation
-# exec("pyspawn.import_methods.into_simulation(pyspawn.qm_integrator." + qm_prop + ")")
-# exec("pyspawn.import_methods.into_traj(pyspawn.potential." + potential + ")")
-# exec("pyspawn.import_methods.into_traj(pyspawn.classical_integrator." + clas_prop + ")")
-
 # check for the existence of files from a past run
-pyspawn.general.check_files()    
+pyspawn.general.check_files()
 
 # set up first trajectory
 if full_H:
@@ -87,7 +82,7 @@ if full_H:
 traj1 = pyspawn.traj(numdims, numstates, krylov_sub_n)
 traj1.set_parameters(traj_params)
 
-# set up simulation 
+# set up simulation
 sim = pyspawn.Simulation(numstates)
 sim.add_traj(traj1)
 sim.set_parameters(sim_params)
