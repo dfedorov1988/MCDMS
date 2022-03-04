@@ -17,7 +17,7 @@ If you use this code, we ask that you cite as follows:
 
 "MCDMS is a nonadiabatic molecular dynamics software package written by Dmitry A.Fedorov, B. G. Levine"
 
-This citation will eventually be updated.
+The article can be found at https://pubs.acs.org/doi/abs/10.1021/acs.jpclett.9b01902
 
 
 License
@@ -32,10 +32,9 @@ Features
 This is a code performing multiple cloning in dense manifolds of states simulation written in python.  It is based on the pySpawn code, from which major parts od code are borrowed. However, there are significant algorithmic differences that it is impractical to keep the capabilities of both programs in the single package.  Right MCDMS has the following features:
 
 -  Runs in the diabatic basis on test systems using cloning to a state procedure.
--  Instead of exact eigenstates, approximate eigenstates can be used (still testing). 
+-  Instead of exact eigenstates, approximate eigenstates can be used. 
 -  An analysis module for processing of simulation data.
 
-This code is currently under development.
 
 Interfaces
 ==========
@@ -45,7 +44,7 @@ Not available yet
 Contact
 =======
 
-MCDMS is developed and maintained primarily by Dmitry A. Fedorov, fedorovd@chemistry.msu.edu.
+MCDMS is developed and maintained primarily by Dmitry A. Fedorov, dfedorov@nevada.unr.edu.
 
 
 
